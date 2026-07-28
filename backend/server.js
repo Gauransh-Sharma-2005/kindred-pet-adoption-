@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const serverless = require('serverless-http');
 const db = require('./db');
 
 const app = express();
@@ -210,6 +211,5 @@ app.put('/api/favorites/:sessionId', (req, res) => {
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
-app.listen(PORT, () => {
-  console.log(`Kindred API listening on http://localhost:${PORT}`);
-});
+module.exports = app;
+module.exports.handler = serverless(app);
