@@ -1,81 +1,47 @@
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const { DatabaseSync } = require('node:sqlite');
+const fs = require('fs');
 
-const DB_PATH = path.join(__dirname, 'kindred.db');
-const db = new DatabaseSync(DB_PATH);
+// Determine if running on Vercel
+const isVercel = process.env.VERCEL || process.env.NODE_ENV === 'production';
 
-db.exec('PRAGMA journal_mode = WAL');
-db.exec('PRAGMA foreign_keys = ON');
+// Vercel serverless environment only allows write operations in /tmp
+const dbPath = isVercel 
+  ? path.join('/tmp', 'kindred.db') 
+  : path.join(__dirname, 'kindred.db');
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS pets (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    species TEXT NOT NULL,
-    breed TEXT,
-    age TEXT,
-    ageGroup TEXT,
-    gender TEXT,
-    location TEXT,
-    status TEXT DEFAULT 'Available',
-    description TEXT,
-    fee TEXT,
-    image TEXT,
-    gallery TEXT DEFAULT '[]',
-    weight TEXT,
-    color TEXT,
-    vaccinated INTEGER DEFAULT 0,
-    sterilized INTEGER DEFAULT 0,
-    medicalStatus TEXT,
-    temperament TEXT,
-    favoriteFood TEXT,
-    favoriteToy TEXT,
-    likes TEXT DEFAULT '[]',
-    dislikes TEXT DEFAULT '[]',
-    energyLevel TEXT,
-    trainingLevel TEXT,
-    availableSince TEXT,
-    shelterName TEXT,
-    rescueStory TEXT,
-    routine TEXT
-  );
+// Ensure database file connection works smoothly
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('Error connecting to SQLite database:', err);
+  } else {
+    console.log(`Connected to SQLite database at: ${dbPath}`);
+  }
+});
 
-  CREATE TABLE IF NOT EXISTS adoption_applications (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    pet_id TEXT NOT NULL,
-    applicant_name TEXT NOT NULL,
-    phone TEXT NOT NULL,
-    living_environment TEXT,
-    status TEXT DEFAULT 'Pending',
-    created_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (pet_id) REFERENCES pets(id)
-  );
-
-  CREATE TABLE IF NOT EXISTS favorites (
-    session_id TEXT NOT NULL,
-    pet_id TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now')),
-    PRIMARY KEY (session_id, pet_id)
-  );
-`);
-
-// node:sqlite's DatabaseSync has no built-in `.transaction()` helper like
-// better-sqlite3 did, so provide a small equivalent: pass a function that
-// takes the row/array of rows to insert, get back a function you call with
-// that data, e.g. `const run = withTransaction(fn); run(rows);`
-function withTransaction(fn) {
-  return (...args) => {
-    db.exec('BEGIN');
-    try {
-      const result = fn(...args);
-      db.exec('COMMIT');
-      return result;
-    } catch (err) {
-      db.exec('ROLLBACK');
-      throw err;
-    }
-  };
-}
+// Create tables automatically if they don't exist yet in /tmp/kindred.db
+db.serialize(() => {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS pets (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      breed TEXT,
+      age INTEGER,
+      gender TEXT,
+      size TEXT,
+      description TEXT,
+      image TEXT,
+      adopted INTEGER DEFAULT 0
+    )
+  `);
+  
+  db.run(`
+    CREATE TABLE IF NOT EXISTS favorites (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pet_id TEXT NOT NULL
+    )
+  `);
+});
 
 module.exports = db;
-module.exports.withTransaction = withTransaction;
