@@ -1,0 +1,19 @@
+{
+  "name": "kindred-backend",
+  "version": "1.0.0",
+  "description": "Kindred pet adoption platform - Express + SQLite backend",
+  "main": "server.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node seed.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}

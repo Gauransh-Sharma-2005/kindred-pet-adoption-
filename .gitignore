@@ -1,0 +1,5 @@
+node_modules/
+dist/
+backend/kindred.db
+backend/kindred.db-wal
+backend/kindred.db-shm
