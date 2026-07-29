@@ -1,7 +1,7 @@
 // Base URL is empty by default because Vite's dev server proxies /api -> the
 // Express backend (see vite.config.js). Set VITE_API_URL to point elsewhere
 // (e.g. a deployed backend) for production builds.
-const BASE_URL = "https://kindred-pet-adoption.onrender.com/";
+const BASE_URL = import.meta.env.VITE_API_URL || '';
 
 async function request(path, options = {}) {
   const res = await fetch(`${BASE_URL}${path}`, {

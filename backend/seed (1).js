@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const serverless = require('serverless-http');
-const db = require('./db');
+const { db, withTransaction } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -138,7 +137,7 @@ app.delete('/api/pets/:id', (req, res) => {
   const existing = db.prepare('SELECT id FROM pets WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Pet not found' });
 
-  const removePet = db.withTransaction((id) => {
+  const removePet = withTransaction((id) => {
     db.prepare('DELETE FROM adoption_applications WHERE pet_id = ?').run(id);
     db.prepare('DELETE FROM favorites WHERE pet_id = ?').run(id);
     db.prepare('DELETE FROM pets WHERE id = ?').run(id);
@@ -199,7 +198,7 @@ app.put('/api/favorites/:sessionId', (req, res) => {
   const { sessionId } = req.params;
   const { petIds = [] } = req.body;
 
-  const replace = db.withTransaction((ids) => {
+  const replace = withTransaction((ids) => {
     db.prepare('DELETE FROM favorites WHERE session_id = ?').run(sessionId);
     const insert = db.prepare('INSERT INTO favorites (session_id, pet_id) VALUES (?, ?)');
     for (const id of ids) insert.run(sessionId, id);
@@ -212,8 +211,5 @@ app.put('/api/favorites/:sessionId', (req, res) => {
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Kindred API listening on http://localhost:${PORT}`);
 });
-
-module.exports = app;
-module.exports.handler = serverless(app);
